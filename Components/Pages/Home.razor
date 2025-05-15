@@ -1,0 +1,90 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+@using System.Data
+@using System.Globalization
+
+<PageTitle>Blazulator</PageTitle>
+
+<p role="status">Expression to compute: @expStr</p>
+
+<br/>
+
+<div class="keypad-row">
+    @foreach (var d in numKeyPad)
+    {
+        <button type="button" class="btn btn-primary m-1" @onclick="() => AppendSymbol(d)">@d</button>
+    }
+</div>
+
+<br/>
+<br/>
+
+<div class="keypad-row">
+    @foreach (var d in opPad)
+    {
+        <button type="button" class="btn btn-primary m-1" @onclick="() => AppendSymbol(d)">@d</button>
+    }
+</div>
+
+<br />
+<br />
+
+<div class="btn-group mb-4">
+    <button class="btn btn-success m-1" @onclick="ComputeResult">=</button>
+    <button class="btn btn-danger m-1" @onclick="ResetExpression">Reset</button>
+</div>
+
+@code 
+{
+    private static readonly string[] numKeyPad =
+    {
+        "1", "2", "3", "4", "5",
+        "6", "7", "8", "9", "0",
+        "(", ")", "."
+    };
+
+    private static readonly string[] opPad =
+    {
+        "+", "-", "*", "/"
+    };
+
+    private string expStr = string.Empty;
+
+    private void ResetExpression() => expStr = string.Empty;
+
+    private void ComputeResult()
+    {
+        if (string.IsNullOrEmpty(expStr) || string.IsNullOrWhiteSpace(expStr))
+        {
+            expStr = string.Empty;
+            return;
+        }
+        try
+        {
+            // 2) Evaluate the arithmetic expression
+            var table = new DataTable();
+            var raw = table.Compute(expStr, filter: null);
+            var value = Convert.ToDecimal(raw, CultureInfo.InvariantCulture);
+
+            // 3) Reject NaN or infinity
+            if (double.IsNaN((double)value) || double.IsInfinity((double)value))
+            {
+                expStr = string.Empty;
+                ResetExpression();
+            }
+            else
+            {
+                // 4) Show the numeric result (replacing the old expression)
+                expStr = value.ToString("G", CultureInfo.InvariantCulture);
+            }
+        }
+        catch
+        {
+            expStr = string.Empty;
+            ResetExpression();
+        }
+    }
+    
+    private void AppendSymbol(string symbol) => expStr += symbol;
+}
